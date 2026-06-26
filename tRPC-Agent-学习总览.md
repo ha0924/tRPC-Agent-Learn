@@ -122,18 +122,35 @@
 
 ### 3.4 Skills 与 CodeExecutor
 
-**Skills**：
-- 通过 `SKILL.md` 描述技能的功能、输入输出和执行方式
-- 支持 skill load → run 的生命周期
-- 封装可复用的任务能力
+> 📖 详细笔记：[`进阶/3.4-Skills与CodeExecutor.md`](进阶/3.4-Skills与CodeExecutor.md)
 
-**CodeExecutor 执行环境**：
-| 环境 | 安全级别 | 说明 |
-|------|---------|------|
-| 本地执行 | 低 | 直接在宿主机运行 |
-| 容器执行 | 中 | Docker 隔离 |
-| Cube 沙箱 | 高 | 轻量级安全沙箱 |
-| E2B 沙箱 | 高 | 云端安全执行环境 |
+**Skills**：
+- 通过 `SKILL.md` 描述技能（frontmatter：name / description / location + 正文 SOP）
+- Progressive Disclosure（渐进式披露）：启动只注入目录，按需 load 全文，省 context
+- 支持 skill load → run 的生命周期，封装可复用的任务能力
+- Skill vs Tool vs MCP：手册 vs 刀片 vs 外部服务
+
+**Workspace Runtime**（执行环境的标准化抽象层）：
+- 目录约定：`work/inputs/`（输入）、`out/`（产出）、`runs/`（日志）
+- 装载具体 Executor backend（local / container / e2b 等）
+- 生命周期：Create → Init Hook → StageInputs → RunProgram → Collect → Destroy
+- 持久化策略：PerSession（同会话复用）/ PerTurn（每轮独立）
+
+**CodeExecutor 执行环境**（安全谱系）：
+| 环境 | 安全级别 | 隔离技术 | 适用场景 |
+|------|---------|---------|---------|
+| 本地执行 (local) | 低 | 无 | 本地开发调试 |
+| Workspace Runtime | 中低 | 路径白名单 + 用户确认 | IDE Agent |
+| 容器执行 (container) | 中 | Docker（Namespaces/Cgroups/Capabilities/Seccomp）| 自建生产 |
+| Jupyter Kernel | 中 | Kernel 进程隔离 | 数据分析友好 |
+| E2B 公有云 | 高 | Firecracker microVM（独立内核）| SaaS / 海外 |
+| Cube 私有化 | 高 | KVM microVM（兼容 E2B 协议）| 国内企业 / 强合规 |
+
+**核心要点**：
+- Cube = "E2B 的国产平替"，协议 100% 兼容，应用代码零改动
+- tRPC-Agent-Go 的 `codeexecutor/e2b` 同时支持 E2B 公有云和 Cube 私有化
+- 安全防御不只是"防代码逃逸"，更要防"数据被合规带走"（5 级隐私防御）
+- 镜像策略：场景化镜像 + 四层缺包兜底 + 容器池预热 = "时间更快 + 越用越快"
 
 ### 3.5 评测、优化与可观测性
 
